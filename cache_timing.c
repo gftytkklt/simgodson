@@ -84,9 +84,9 @@ static struct mshr_full_event *mshr_full_free_list;
 
 /* Set predefined (but changeable via command-line) maximal
    numbers of various mshr components */
-int regular_mshrs;
-int prefetch_mshrs;
-int mshr_targets;
+// int regular_mshrs;
+// int prefetch_mshrs;
+// int mshr_targets;
 
 
 

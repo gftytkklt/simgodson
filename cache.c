@@ -423,7 +423,7 @@ void increase_cache_packet_free_list()
    subsequently restarting) much cleaner. Could differentiate between functional
    and timing versions by not initializing the last three fields in the functional
    version (more efficient), but that's probably not a lot of overhead.  */
-inline cache_access_packet *
+cache_access_packet *
 cache_create_access_packet(void *mp, 			/* Pointer to level in the memory hierarchy */
 			   unsigned int cmd,
 			   md_addr_t addr, 

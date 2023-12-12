@@ -285,7 +285,7 @@ extern md_inst_t MD_NOP_INST;
 
 /* virtual memory segment limits */
 #if 1
-#define MD_TEXT_BASE		0x00200000
+#define MD_TEXT_BASE		0x00400000
 #else
 #define MD_TEXT_BASE		0x04000000
 #endif

@@ -101,9 +101,9 @@ struct mmap_arg_struct {
 
 /* used in SS_SYS_statfs and SS_SYS_fstatfs */
 
-typedef struct {
-        t_long_t   val[2];
-} __kernel_fsid_t;
+// typedef struct {
+//         t_long_t   val[2];
+// } __kernel_fsid_t;
 
 struct ss_statfs {
         t_long_t           ss_f_type;

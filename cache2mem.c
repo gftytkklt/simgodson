@@ -70,11 +70,11 @@
 #include "noc.h"
 #include "ptrace.h"
 
-int mem_read_first_delay;
-int mem_read_interval_delay;
-int mem_write_delay;
+// int mem_read_first_delay;
+// int mem_read_interval_delay;
+// int mem_write_delay;
 
-int memq_ifq_size;
+// int memq_ifq_size;
 
 /* Initialize the refill free list */
 static void refill_init_free_list(struct godson2_cpu *st)

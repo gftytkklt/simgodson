@@ -640,7 +640,7 @@ void mark_valid(struct cache *cp, int mode);
 void mark_bitmap(struct cache *cp,int b);
 void cache_free_access_packet(cache_access_packet *buf);
 void link_htab_ent(struct cache *cp, struct cache_set *set, struct cache_blk *blk);
-inline cache_access_packet *
+cache_access_packet *
 cache_create_access_packet(void *mp,
 			   unsigned int cmd,
 			   md_addr_t addr, 

@@ -171,8 +171,10 @@ fetch_stage(struct godson2_cpu *st)
       within_cache_line ;
       i++){
     
-    //myfprintf(stderr,"fetch %x\n",fetch_reg_PC);
+    // myfprintf(stderr,"fetch %x\n",st->fetch_reg_PC);
     /* If valid address */
+    // myfprintf(stderr,"PC at %x, valid addr [%x, %x)\n",st->fetch_reg_PC, st->ld_text_base, (st->ld_text_base+st->ld_text_size));
+    // myfprintf(stderr,"alignment case is %d\n", !(st->fetch_reg_PC & (sizeof(md_inst_t)-1)));
     if(st->ld_text_base <= st->fetch_reg_PC && 
        st->fetch_reg_PC < (st->ld_text_base+st->ld_text_size) &&  
        !(st->fetch_reg_PC & (sizeof(md_inst_t)-1))){
@@ -247,7 +249,7 @@ fetch_stage(struct godson2_cpu *st)
       MD_FETCH_INST(inst,st->mem,st->fetch_reg_PC);
       current->trap = FALSE;
     } else { /* invalid pc range */
-      //myfprintf(stderr,"bogus inst at %x\n",fetch_reg_PC);
+      // myfprintf(stderr,"bogus inst at %x\n",st->fetch_reg_PC);
       /* BOGUS inst. Send a NOP */
       current = fetch_get_from_free_list(st);
       /* fetch PC is bogus, send a NOP down the pipeline */
