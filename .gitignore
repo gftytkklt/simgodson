@@ -1,9 +1,13 @@
 # 忽略所有文件
-**
-
+*
+!*/
 # 但不忽略 .c 和 .h 文件
-!**/*.c
-!**/*.h
+!*.c
+!*.h
+!*.cfg
+!*.def
+!*.l
+!*.md
 
 # 也不忽略 Makefile 和 .gitignore
 !Makefile
