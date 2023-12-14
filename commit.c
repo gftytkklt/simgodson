@@ -418,13 +418,13 @@ commit_stage(struct godson2_cpu *st)
 	  last_commit_rs = rs;
 
       /* print retirement trace if in verbose mode */
-      if (0 /*verbose && (sim_pop_insn % opt_inst_interval == 0)*/) {
-        myfprintf(stderr, "cpu%d %10n @ 0x%08p: ", st->cpuid, st->sim_commit_insn, rs->regs_PC);
+      if (1 /*verbose && (sim_pop_insn % opt_inst_interval == 0)*/) {
+        myfprintf(stderr, "cpu%d %10n @ 0x%08p, paddr 0x%08p: ", st->cpuid, st->sim_commit_insn, rs->regs_PC, rs->addr);
  	    md_print_insn(rs->IR, rs->regs_PC, stderr);
 	    if (MD_OP_FLAGS(rs->op) & F_MEM){
 		  //md_addr_t paddr;
 		  //dtlb_probe(st->mem, rs->addr, &paddr);
-	      myfprintf(stderr, "  paddr: 0x%08p",st->lsq[rs->lsqid].paddr/*rs->addr*/);
+	      myfprintf(stderr, " addr: 0x%08p, paddr: 0x%08p",st->lsq[rs->lsqid].addr ,st->lsq[rs->lsqid].paddr/*rs->addr*/);
 		}
 	    fprintf(stderr, "\n");
 	  /* fflush(stderr); */
@@ -542,7 +542,18 @@ commit_stage(struct godson2_cpu *st)
         fetch_return_to_free_list(st,rs);
       }
     
-	
+	if(rs->IR == 0x7000003f){
+    // printf("ebreak v0 = %x", st->regs.regs_R[2]);
+    if(st->regs.regs_R[2] == 0){
+      printf("hit good trap\n");
+    }
+    else{
+      printf("hit bad trap\n");
+    }
+    st->sdbbp = 1;
+    break;
+  }
+
 	}  /*end of main while loop*/
 
 #ifdef ISTAT

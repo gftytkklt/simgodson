@@ -2681,8 +2681,24 @@ void cpu_execute(tick_t now, struct godson2_cpu *st)
 	    done_draining &= st->done_draining;
 	  
   	    /* finish early? */
+        // if (st->sim_pop_insn >= 1500){
+        //   printf("stats: \n");
+        //   for(unsigned ii = 0; ii < 32; ii++){
+        //     printf("%08x ", st->regs.regs_R[ii]);
+        //     if(ii % 8 == 7){printf("\n");}
+        //   }
+        // }
         if (opt_max_insts && st->sim_pop_insn >= opt_max_insts)
     	  return;
+        /* sdbbp ?*/
+        if(st->sdbbp){
+          printf("stats: \n");
+          for(unsigned ii = 0; ii < 32; ii++){
+            printf("%08x ", st->regs.regs_R[ii]);
+            if(ii % 8 == 7){printf("\n");}
+          }
+          return;
+        }
 	  }
 
 //	if (done_draining)  return;

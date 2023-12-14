@@ -247,6 +247,7 @@ fetch_stage(struct godson2_cpu *st)
       current = fetch_get_from_free_list(st);
       /* read inst from memory */
       MD_FETCH_INST(inst,st->mem,st->fetch_reg_PC);
+      // myfprintf(stderr,"fetch inst %x at %x\n",inst, st->fetch_reg_PC);
       current->trap = FALSE;
     } else { /* invalid pc range */
       // myfprintf(stderr,"bogus inst at %x\n",st->fetch_reg_PC);

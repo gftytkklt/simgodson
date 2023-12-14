@@ -94,7 +94,8 @@ CC = gcc
 #OFLAGS = -O3 -DNDEBUG -Wall
 SYSFLAGS = `./sysprobe`
 OFLAGS = -g -DDEBUG -DMESI -Wall $(SYSFLAGS) -m32 #-DASYNC_DVFS 
-MLIBS = `./sysprobe -libs` -lm
+# OFLAGS = -g -DDEBUG -DMESI -Wall $(SYSFLAGS) #-DASYNC_DVFS 
+MLIBS = `./sysprobe -libs` -lm -lelf
 ENDIAN = `./sysprobe -s`
 MAKE = make
 AR = ar qcv
@@ -195,6 +196,20 @@ PROGS = sim-godson$(EEXT)
 all: $(PROGS)
 	@echo "my work is done here..."
 
+DIR = /home/gftyt/ysyx-workbench/am-kernels/tests/cpu-tests/build
+
+run: $(PROGS)
+ifdef ALL
+	./$(PROGS) -d $(DIR)/$(ALL)-mips32-nemu.elf
+else
+	$(shell for file in $(DIR)/*-mips32-nemu.elf; do \
+		if [ "$$file" != "$(DIR)/dummy-mips32-nemu.elf" ]; then \
+			./$(PROGS) -d $$file; \
+		fi; \
+	done)
+	
+endif
+
 sysprobe$(EEXT):	sysprobe.c
 	$(CC) $(FFLAGS) -o sysprobe$(EEXT) sysprobe.c
 	@echo endian probe results: $(ENDIAN)
@@ -231,7 +246,7 @@ diffs:
 	-rcsdiff RCS/*
 
 clean:
-	-$(RM) *.o *.obj core *~ Makefile.bak sysprobe$(EEXT) $(PROGS)
+	-$(RM) *.o *.d *.obj core *~ Makefile.bak sysprobe$(EEXT) $(PROGS)
 	cd ./libexo $(CS) $(MAKE) "RM=$(RM)" "CS=$(CS)" clean $(CS) cd ..
 unpure:
 	rm -f sim.pure *pure*.o sim.pure.pure_hardlink sim.pure.pure_linkinfo

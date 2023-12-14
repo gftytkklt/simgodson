@@ -5,6 +5,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <libelf.h>
+#include <fcntl.h>
+#include <gelf.h>
 
 #include "host.h"
 #include "misc.h"
@@ -19,7 +22,7 @@
 #ifdef BFD_LOADER
 #include <bfd.h>
 #else /* !BFD_LOADER */
-#include "target-mips/ecoff.h"
+// #include "target-mips/ecoff.h"
 #endif /* BFD_LOADER */
 
 /* amount of segment alignment to all loadable segment */
@@ -343,17 +346,21 @@ void ld_load_prog(char *fname,		/* program to load */
     Elf32_Phdr elf_phdr;
     Elf32_Shdr elf_shdr,elf_shstrtab;
     char *stringtable,*name;
+	// extern char _stack_top, _heap_start;
     
     
 
     /* set up a local stack pointer, this is where the argv and envp
        data is written into program memory */
-    st->ld_stack_base = MD_STACK_BASE;
-    sp = ROUND_DOWN(MD_STACK_BASE - MD_MAX_ENVIRON, sizeof(dfloat_t));
-    st->ld_stack_size = st->ld_stack_base - sp;
+	// printf("%x, %x\n", _stack_top, _heap_start);
+    // st->ld_stack_base = MD_STACK_BASE;
+    // sp = ROUND_DOWN(MD_STACK_BASE - MD_MAX_ENVIRON, sizeof(dfloat_t));
+	// // printf("%x, %x\n", st->ld_stack_base, sp);
+    // st->ld_stack_size = st->ld_stack_base - sp;
+	st->ld_stack_size = 0x8000;
 
-    /* initial stack pointer value */
-    st->ld_environ_base = sp;
+    // /* initial stack pointer value */
+    // st->ld_environ_base = sp;
 
     /* record profile file name */
     st->ld_prog_fname = argv[0];
@@ -385,6 +392,51 @@ void ld_load_prog(char *fname,		/* program to load */
 		ld_target_big_endian = FALSE;
 	else 
 		ld_target_big_endian = TRUE;
+
+	/* get global symbols in elf file, init prog pointer by elf*/
+	elf_version(EV_CURRENT);
+	int fd = open(argv[0], O_RDONLY);
+	Elf *elf = elf_begin(fd, ELF_C_READ, NULL);
+	assert(elf != NULL);
+	Elf_Scn *scn = NULL;
+	printf("get scn in %s\n", argv[0]);
+    while ((scn = elf_nextscn(elf, scn)) != NULL) {
+        GElf_Shdr shdr;
+        gelf_getshdr(scn, &shdr);
+        // 检查是否为符号表
+        if (shdr.sh_type == SHT_SYMTAB) {
+            // 获取符号表
+            Elf_Data *data = elf_getdata(scn, NULL);
+            int count = shdr.sh_size / shdr.sh_entsize;
+
+            // 遍历符号表
+            for (int i = 0; i < count; ++i) {
+                GElf_Sym sym;
+                gelf_getsym(data, i, &sym);
+
+                // 检查符号名称
+                char *name = elf_strptr(elf, shdr.sh_link, sym.st_name);
+				// printf("name: %s \n", name);
+                if (strcmp(name, "_data") == 0) {
+					// set st->ld_data_base
+					st->ld_data_base = sym.st_value;
+                    break;
+                }
+				else if(strcmp(name, "_heap_start") == 0) {
+					st->ld_brk_point = sym.st_value;
+				}
+				else if(strcmp(name, "_stack_pointer") == 0) {
+					st->ld_stack_base = sym.st_value;
+				}
+				else if(strcmp(name, "_stack_top") == 0) {
+					st->ld_stack_min = sym.st_value;
+				}
+            }
+        }
+    }
+
+    elf_end(elf);
+    close(fd);
 
 	/* load the program headers in the elf executable file */
 	
@@ -463,7 +515,7 @@ void ld_load_prog(char *fname,		/* program to load */
 
     /* compute data segment size from data break point */
     st->ld_text_base = MD_TEXT_BASE;
-    st->ld_data_base = MD_DATA_BASE;
+    // st->ld_data_base = MD_DATA_BASE;
     st->ld_prog_entry = elf_ehdr.e_entry;
     data_break = st->ld_data_base + st->ld_data_size;
 
@@ -538,89 +590,93 @@ void ld_load_prog(char *fname,		/* program to load */
 #endif
     }
 
-  /* write [argc] to stack */
-  temp = MD_SWAPW(argc);
-  mem_access(mem, Write, sp, &temp, sizeof(word_t));
-  sp += sizeof(word_t);
+/* 12/13: am programs do not need argc, argv, envp, comment it for debugging */
+//   /* write [argc] to stack */
+//   temp = MD_SWAPW(argc);
+//   mem_access(mem, Write, sp, &temp, sizeof(word_t));
+//   sp += sizeof(word_t);
 
-  /* skip past argv array and NULL */
-  argv_addr = sp;
-  sp = sp + (argc + 1) * sizeof(md_addr_t);
+//   /* skip past argv array and NULL */
+//   argv_addr = sp;
+//   sp = sp + (argc + 1) * sizeof(md_addr_t);
 
-  /* save space for envp array and NULL */
-  envp_addr = sp;
-  for (i=0; envp[i]; i++)
-    sp += sizeof(md_addr_t);
-  sp += sizeof(md_addr_t);
+//   /* save space for envp array and NULL */
+//   envp_addr = sp;
+//   for (i=0; envp[i]; i++)
+//     sp += sizeof(md_addr_t);
+//   sp += sizeof(md_addr_t);
 
-  /* fill in aux vector --by zfx,new glibc may use it 
-   * aux vectors are [type,val] pairs
-   */
-#define AT_PAGESZ  6
-#define AT_NULL    0
+//   /* fill in aux vector --by zfx,new glibc may use it 
+//    * aux vectors are [type,val] pairs
+//    */
+// #define AT_PAGESZ  6
+// #define AT_NULL    0
 
-  temp = AT_PAGESZ;
-  mem_access(mem, Write, sp, &temp, sizeof(word_t));
-  sp += sizeof(word_t);
-  temp = MD_PAGE_SIZE;
-  mem_access(mem, Write, sp, &temp, sizeof(word_t));
-  sp += sizeof(word_t);
+//   temp = AT_PAGESZ;
+//   mem_access(mem, Write, sp, &temp, sizeof(word_t));
+//   sp += sizeof(word_t);
+//   temp = MD_PAGE_SIZE;
+//   mem_access(mem, Write, sp, &temp, sizeof(word_t));
+//   sp += sizeof(word_t);
 
-  temp = AT_NULL;
-  mem_access(mem, Write, sp, &temp, sizeof(word_t));
-  sp += sizeof(word_t);
-  temp = 0;
-  mem_access(mem, Write, sp, &temp, sizeof(word_t));
-  sp += sizeof(word_t);
+//   temp = AT_NULL;
+//   mem_access(mem, Write, sp, &temp, sizeof(word_t));
+//   sp += sizeof(word_t);
+//   temp = 0;
+//   mem_access(mem, Write, sp, &temp, sizeof(word_t));
+//   sp += sizeof(word_t);
 
-  /* fill in the argv pointer array and data */
-  for (i=0; i<argc; i++)
-    {
-      /* write the argv pointer array entry */
-      temp = MD_SWAPW(sp);
-      mem_access(mem, Write, argv_addr + i*sizeof(md_addr_t),
-		 &temp, sizeof(md_addr_t));
-      /* and the data */
-      mem_strcpy(mem_access, mem, Write, sp, argv[i]);
-      sp += strlen(argv[i]) + 1;
-    }
-  /* terminate argv array with a NULL */
-  mem_access(mem, Write, argv_addr + i*sizeof(md_addr_t),
-	     &null_ptr, sizeof(md_addr_t));
+//   /* fill in the argv pointer array and data */
+//   for (i=0; i<argc; i++)
+//     {
+//       /* write the argv pointer array entry */
+//       temp = MD_SWAPW(sp);
+//       mem_access(mem, Write, argv_addr + i*sizeof(md_addr_t),
+// 		 &temp, sizeof(md_addr_t));
+//       /* and the data */
+//       mem_strcpy(mem_access, mem, Write, sp, argv[i]);
+//       sp += strlen(argv[i]) + 1;
+//     }
+//   /* terminate argv array with a NULL */
+//   mem_access(mem, Write, argv_addr + i*sizeof(md_addr_t),
+// 	     &null_ptr, sizeof(md_addr_t));
 
-  /* write envp pointer array and data to stack */
-  for (i = 0; envp[i]; i++)
-    {
-      /* write the envp pointer array entry */
-      temp = MD_SWAPW(sp);
-      mem_access(mem, Write, envp_addr + i*sizeof(md_addr_t),
-		 &temp, sizeof(md_addr_t));
-      /* and the data */
-      mem_strcpy(mem_access, mem, Write, sp, envp[i]);
-      sp += strlen(envp[i]) + 1;
-    }
-  /* terminate the envp array with a NULL */
-  mem_access(mem, Write, envp_addr + i*sizeof(md_addr_t),
-	     &null_ptr, sizeof(md_addr_t));
+//   /* write envp pointer array and data to stack */
+//   for (i = 0; envp[i]; i++)
+//     {
+//       /* write the envp pointer array entry */
+//       temp = MD_SWAPW(sp);
+//       mem_access(mem, Write, envp_addr + i*sizeof(md_addr_t),
+// 		 &temp, sizeof(md_addr_t));
+//       /* and the data */
+//       mem_strcpy(mem_access, mem, Write, sp, envp[i]);
+//       sp += strlen(envp[i]) + 1;
+//     }
+//   /* terminate the envp array with a NULL */
+//   mem_access(mem, Write, envp_addr + i*sizeof(md_addr_t),
+// 	     &null_ptr, sizeof(md_addr_t));
 
-  /* did we tromp off the stop of the stack? */
-  if (sp > st->ld_stack_base)
-    {
-      /* we did, indicate to the user that MD_MAX_ENVIRON must be increased,
-	 alternatively, you can use a smaller environment, or fewer
-	 command line arguments */
-      fatal("environment overflow, increase MD_MAX_ENVIRON in ss.h");
-    }
+//   /* did we tromp off the stop of the stack? */
+//   if (sp > st->ld_stack_base)
+//     {
+//       /* we did, indicate to the user that MD_MAX_ENVIRON must be increased,
+// 	 alternatively, you can use a smaller environment, or fewer
+// 	 command line arguments */
+//       fatal("environment overflow, increase MD_MAX_ENVIRON in ss.h");
+//     }
+/* 12/13: am programs do not need argc, argv, envp, comment it for debugging end*/
 
   /* initialize the bottom of heap to top of data segment */
   //ld_brk_point = ROUND_UP(ld_data_base + ld_data_size, MD_PAGE_SIZE);
-  st->ld_brk_point = st->ld_data_size + st->ld_data_base;
+//   st->ld_brk_point = st->ld_data_size + st->ld_data_base;
   
   /* set initial minimum stack pointer value to initial stack value */
-  st->ld_stack_min = regs->regs_R[MD_REG_SP];
+//   st->ld_stack_min = regs->regs_R[MD_REG_SP];
 
   /* set up initial register state */
-  regs->regs_R[MD_REG_SP] = st->ld_environ_base;
+  /* 12/13: do not need sp init, finished by _start*/
+//   regs->regs_R[MD_REG_SP] = st->ld_environ_base;
+  /* 12/13: do not need sp init, finished by _start end*/
   regs->regs_PC = st->ld_prog_entry;
 
   debug("ld_text_base: 0x%08x  ld_text_size: 0x%08x",
@@ -630,6 +686,7 @@ void ld_load_prog(char *fname,		/* program to load */
   debug("ld_stack_base: 0x%08x  ld_stack_size: 0x%08x",
 	st->ld_stack_base, st->ld_stack_size);
   debug("ld_prog_entry: 0x%08x", st->ld_prog_entry);
+  debug("ld_brk_point: 0x%08x", st->ld_brk_point);
 
   /* finally, predecode the text segment... */
   /* we only execute the instructions in .text section */

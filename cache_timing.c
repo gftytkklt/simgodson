@@ -482,6 +482,7 @@ cache_timing_reg_stats(struct cache *cp,	/* cache instance */
 void schedule_response_handler(tick_t when,
 				      struct mshregisters *msrhp,
 				      MSHR_STAMP_TYPE stamp);
+              
 static void response_handler(tick_t now,
 			     struct mshregisters *mshrp,
 			     MSHR_STAMP_TYPE stamp);

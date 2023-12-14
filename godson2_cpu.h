@@ -575,6 +575,9 @@ struct godson2_cpu {
   int active;
   char *stdin_addr;
 
+  // sdbbp
+  int sdbbp; // nemu ebreak
+
   /* fetch queue */
   int fetch_num;
   int fetch_head; 
