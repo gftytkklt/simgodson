@@ -1,6 +1,0 @@
-#!/bin/bash
-lists=`grep "_IMPL" mips.def | cut -d ' ' -f 2 | cut -f 1`
-
-for i in $lists ; do
-  echo \#undef $i >> undef.lists
-done
