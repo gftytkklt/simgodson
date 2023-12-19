@@ -80,11 +80,12 @@ static unsigned int ptrace_seq = 0;
 #ifdef ISTAT
 tick_t last_fetch_time_stamp = 0;
 #endif
-
-int is_split_op(int op)
-{
-  return (op==MULT || op==MULTU || op==DIV || op==DIVU);
-}
+// in riscv, no split op exist
+// int is_split_op(int op)
+// {
+//   return (op==MULT || op==MULTU || op==DIV || op==DIVU);
+//   return 0;
+// }
 
 
 /*Initialize the fetch stage*/
@@ -176,7 +177,7 @@ fetch_stage(struct godson2_cpu *st)
     // myfprintf(stderr,"PC at %x, valid addr [%x, %x)\n",st->fetch_reg_PC, st->ld_text_base, (st->ld_text_base+st->ld_text_size));
     // myfprintf(stderr,"alignment case is %d\n", !(st->fetch_reg_PC & (sizeof(md_inst_t)-1)));
     if(st->ld_text_base <= st->fetch_reg_PC && 
-       st->fetch_reg_PC < (st->ld_text_base+st->ld_text_size) &&  
+       st->fetch_reg_PC < (st->ld_text_base+st->ld_text_size) && 
        !(st->fetch_reg_PC & (sizeof(md_inst_t)-1))){
 
       /* TODO: add tlb */
@@ -261,10 +262,10 @@ fetch_stage(struct godson2_cpu *st)
     /* Set the opcode */
     MD_SET_OPCODE(current->op,inst);
 
-    if (is_split_op(current->op) && st->fetch_num == fetch_width-1) {
-      fetch_return_to_free_list(st,current);
-      break;
-    }
+    // if (is_split_op(current->op) && st->fetch_num == fetch_width-1) {
+    //   fetch_return_to_free_list(st,current);
+    //   break;
+    // }
 
 
     /* more to initialize? */
@@ -351,42 +352,42 @@ fetch_stage(struct godson2_cpu *st)
     st->fetch_data[st->fetch_tail] = current;
     st->fetch_tail = (st->fetch_tail + 1) & (fetch_ifq_size - 1);
     st->fetch_num ++;
-    if (is_split_op(current->op)) {
-      struct inst_descript *ori = current;
-      current = fetch_get_from_free_list(st);
+//     if (is_split_op(current->op)) {
+//       struct inst_descript *ori = current;
+//       current = fetch_get_from_free_list(st);
 
-      current->trap = FALSE;
-      current->mapped = FALSE;
-      current->queued = FALSE;
-      current->next_issue = FALSE;
-      current->issued = FALSE;
-      current->completed = FALSE;
-      current->brcompleted = FALSE;
-      /* Copy inst value, PC, and the cycle this inst is fetched */ 
-      current->IR = inst;
-      current->regs_PC  = st->fetch_reg_PC;
-      current->regs_NPC = st->fetch_reg_PC + sizeof(md_inst_t);
-      current->pred_PC  = st->fetch_reg_PC + sizeof(md_inst_t);
-      current->time_stamp = sim_cycle;
-#ifdef ISTAT
-      current->fetch_latency = sim_cycle - last_fetch_time_stamp;
-      current->icache_miss = last_inst_missed;
-      current->dcache_miss = 0;
-#endif
-      current->seq = st->inst_seq++;
-      current->ptrace_seq = st->ptrace_seq++;
-      current->bht_op = FALSE;
-      current->jr_op = FALSE;
-      current->bd = FALSE;
+//       current->trap = FALSE;
+//       current->mapped = FALSE;
+//       current->queued = FALSE;
+//       current->next_issue = FALSE;
+//       current->issued = FALSE;
+//       current->completed = FALSE;
+//       current->brcompleted = FALSE;
+//       /* Copy inst value, PC, and the cycle this inst is fetched */ 
+//       current->IR = inst;
+//       current->regs_PC  = st->fetch_reg_PC;
+//       current->regs_NPC = st->fetch_reg_PC + sizeof(md_inst_t);
+//       current->pred_PC  = st->fetch_reg_PC + sizeof(md_inst_t);
+//       current->time_stamp = sim_cycle;
+// #ifdef ISTAT
+//       current->fetch_latency = sim_cycle - last_fetch_time_stamp;
+//       current->icache_miss = last_inst_missed;
+//       current->dcache_miss = 0;
+// #endif
+//       current->seq = st->inst_seq++;
+//       current->ptrace_seq = st->ptrace_seq++;
+//       current->bht_op = FALSE;
+//       current->jr_op = FALSE;
+//       current->bd = FALSE;
 
-      if (ori->op==MULT || ori->op==MULTU) {
-        current->op = SPLITMUL;
-      }else
-        current->op = SPLITDIV;
-      st->fetch_data[st->fetch_tail] = current;
-      st->fetch_tail = (st->fetch_tail + 1) & (fetch_ifq_size - 1);
-      st->fetch_num ++;
-    }
+//       if (ori->op==MULT || ori->op==MULTU) {
+//         current->op = SPLITMUL;
+//       }else
+//         current->op = SPLITDIV;
+//       st->fetch_data[st->fetch_tail] = current;
+//       st->fetch_tail = (st->fetch_tail + 1) & (fetch_ifq_size - 1);
+//       st->fetch_num ++;
+//     }
 
     st->fetch_reg_PC += sizeof(md_inst_t);
 
